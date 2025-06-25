@@ -25,7 +25,6 @@ if (!defined('DOKU_INC')) {
 if (!defined('DOKU_PLUGIN')) {
     define('DOKU_PLUGIN', DOKU_INC . 'lib/plugins/');
 }
-require_once(DOKU_PLUGIN . 'syntax.php');
 
 // Explicitly require the file where the HTTP client class is defined
 // Using the path found on your system: /app/www/public/inc/HTTP/HTTPClient.php
