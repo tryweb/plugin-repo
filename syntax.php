@@ -21,7 +21,7 @@
 if(!defined('DOKU_INC')) die();
 
 if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
-require_once(DOKU_PLUGIN.'syntax.php');
+// require_once(DOKU_PLUGIN.'syntax.php'); // Removed as per Dokuwiki 2025 autoloading
 
 /**
  * All DokuWiki plugins to extend the parser/rendering mechanism
@@ -41,8 +41,13 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     function handle($match, $state, $pos, Doku_Handler $handler) {
 
         $match = substr($match, 7, -2);
-        list($base, $title) = explode('|', $match, 2);
-        list($base, $refresh) = explode(' ', $base, 2);
+        $parts = explode('|', $match, 2);
+        $base = $parts[0] ?? '';
+        $title = $parts[1] ?? '';
+        
+        $parts = explode(' ', $base, 2);
+        $base = $parts[0] ?? '';
+        $refresh = $parts[1] ?? '';
 
         if (preg_match('/(\d+)([dhm])/', $refresh, $match)) {
             $period = array('d' => 86400, 'h' => 3600, 'm' => 60);
@@ -64,7 +69,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
         // construct requested URL
         $base  = hsc($data[0]);
         $title = ($data[1] ? hsc($data[1]) : $base);
-        $path  = hsc($_REQUEST['repo']);
+        $path  = hsc($_REQUEST['repo'] ?? '');
         $url   = $base.$path;
 
         if ($mode == 'xhtml') {
@@ -90,7 +95,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
             $renderer->meta['relation']['haspart'][$url] = 1;
         }
 
-        return $ok;
+        return true;
     }
 
     /**
@@ -102,7 +107,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
         $cache = getCacheName($url.$path, '.repo');
         $mtime = @filemtime($cache); // 0 if it doesn't exist
 
-        if (($mtime != 0) && !$_REQUEST['purge'] && ($mtime > time() - $refresh)) {
+        if (($mtime != 0) && !($_REQUEST['purge'] ?? false) && ($mtime > time() - $refresh)) {
             $idx = io_readFile($cache, false);
             if ($conf['allowdebug']) $idx .= "\n<!-- cachefile $cache used -->\n";
         } else {
@@ -122,7 +127,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     function _index($url, $path, $base = '', $lvl = 0) {
 
         // download the index html file
-        $http = new DokuHTTPClient();
+        $http = new \dokuwiki\HTTP\DokuHTTPClient();
         $http->timeout = 25; //max. 25 sec
         $data = $http->get($url.$base);
         preg_match_all('/<li><a href="(.*?)">/i', $data, $results);
@@ -182,7 +187,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
         $cache = getCacheName($url, '.code');
         $mtime = @filemtime($cache); // 0 if it doesn't exist
 
-        if (($mtime != 0) && !$_REQUEST['purge'] &&
+        if (($mtime != 0) && !($_REQUEST['purge'] ?? false) &&
                 ($mtime > time() - $refresh) &&
                 ($mtime > filemtime(DOKU_INC.'vendor/geshi/geshi/src/geshi.php'))) {
 
@@ -190,7 +195,13 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
             if ($conf['allowdebug']) $hi_code .= "\n<!-- cachefile $cache used -->\n";
 
         } else {
-            require_once(DOKU_INC .'vendor/geshi/geshi/src/geshi.php');
+            if (!class_exists('GeSHi')) {
+                if (file_exists(DOKU_INC .'vendor/geshi/geshi/src/geshi.php')) {
+                    require_once(DOKU_INC .'vendor/geshi/geshi/src/geshi.php');
+                } elseif (file_exists(DOKU_INC .'inc/geshi.php')) {
+                    require_once(DOKU_INC .'inc/geshi.php');
+                }
+            }
 
             // get the source code language first
             $search = array('/^htm/', '/^js$/');
@@ -198,7 +209,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
             $lang = preg_replace($search, $replace, substr(strrchr($url, '.'), 1));
 
             // download external file
-            $http = new DokuHTTPClient();
+            $http = new \dokuwiki\HTTP\DokuHTTPClient();
             $http->timeout = 25; //max. 25 sec
             $code = $http->get($url);
 
@@ -206,7 +217,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
             $geshi->set_encoding('utf-8');
             $geshi->enable_classes();
             $geshi->set_header_type(GESHI_HEADER_PRE);
-            $geshi->set_overall_class("code $language");
+            $geshi->set_overall_class("code $lang");
             $geshi->set_link_target($conf['target']['extern']);
 
             $hi_code = $geshi->parse_code();
