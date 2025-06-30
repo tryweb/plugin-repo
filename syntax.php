@@ -17,11 +17,7 @@
  * @author     Myron Turner <turnermm02@shaw.ca>
  */
 
-// must be run inside DokuWiki
-if(!defined('DOKU_INC')) die();
-
-if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
-// require_once(DOKU_PLUGIN.'syntax.php'); // Removed as per Dokuwiki 2025 autoloading
+use dokuwiki\HTTP\DokuHTTPClient;
 
 /**
  * All DokuWiki plugins to extend the parser/rendering mechanism
@@ -41,11 +37,11 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     function handle($match, $state, $pos, Doku_Handler $handler) {
 
         $match = substr($match, 7, -2);
-        $parts = explode('|', $match, 2);
+        $parts = sexplode('|', $match, 2);
         $base = $parts[0] ?? '';
         $title = $parts[1] ?? '';
         
-        $parts = explode(' ', $base, 2);
+        $parts = sexplode(' ', $base, 2);
         $base = $parts[0] ?? '';
         $refresh = $parts[1] ?? '';
 
@@ -65,11 +61,12 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
      * Create output
      */
     function render($mode, Doku_Renderer $renderer, $data) {
+        global $INPUT;
 
         // construct requested URL
         $base  = hsc($data[0]);
         $title = ($data[1] ? hsc($data[1]) : $base);
-        $path  = hsc($_REQUEST['repo'] ?? '');
+        $path  = hsc($INPUT->str('repo'));
         $url   = $base.$path;
 
         if ($mode == 'xhtml') {
@@ -102,12 +99,12 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
      * Handle remote directories
      */
     function _directory($url, &$renderer, $path, $refresh) {
-        global $conf;
+        global $conf, $INPUT;
 
         $cache = getCacheName($url.$path, '.repo');
         $mtime = @filemtime($cache); // 0 if it doesn't exist
 
-        if (($mtime != 0) && !($_REQUEST['purge'] ?? false) && ($mtime > time() - $refresh)) {
+        if (($mtime != 0) && !$INPUT->bool('purge') && ($mtime > time() - $refresh)) {
             $idx = io_readFile($cache, false);
             if ($conf['allowdebug']) $idx .= "\n<!-- cachefile $cache used -->\n";
         } else {
@@ -127,7 +124,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     function _index($url, $path, $base = '', $lvl = 0) {
 
         // download the index html file
-        $http = new \dokuwiki\HTTP\DokuHTTPClient();
+        $http = new DokuHTTPClient();
         $http->timeout = 25; //max. 25 sec
         $data = $http->get($url.$base);
         preg_match_all('/<li><a href="(.*?)">/i', $data, $results);
@@ -182,12 +179,12 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
      * @author Esther Brunner <wikidesign@gmail.com>
      */
     function _cached_geshi($url, $refresh) {
-        global $conf;
+        global $conf, $INPUT;
 
         $cache = getCacheName($url, '.code');
         $mtime = @filemtime($cache); // 0 if it doesn't exist
 
-        if (($mtime != 0) && !($_REQUEST['purge'] ?? false) &&
+        if (($mtime != 0) && !$INPUT->bool('purge') &&
                 ($mtime > time() - $refresh) &&
                 ($mtime > filemtime(DOKU_INC.'vendor/geshi/geshi/src/geshi.php'))) {
 
@@ -195,21 +192,13 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
             if ($conf['allowdebug']) $hi_code .= "\n<!-- cachefile $cache used -->\n";
 
         } else {
-            if (!class_exists('GeSHi')) {
-                if (file_exists(DOKU_INC .'vendor/geshi/geshi/src/geshi.php')) {
-                    require_once(DOKU_INC .'vendor/geshi/geshi/src/geshi.php');
-                } elseif (file_exists(DOKU_INC .'inc/geshi.php')) {
-                    require_once(DOKU_INC .'inc/geshi.php');
-                }
-            }
-
             // get the source code language first
             $search = array('/^htm/', '/^js$/');
             $replace = array('html4strict', 'javascript');
             $lang = preg_replace($search, $replace, substr(strrchr($url, '.'), 1));
 
             // download external file
-            $http = new \dokuwiki\HTTP\DokuHTTPClient();
+            $http = new DokuHTTPClient();
             $http->timeout = 25; //max. 25 sec
             $code = $http->get($url);
 
@@ -239,7 +228,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
         $renderer->internallink($ID, $title);
 
         $base = '';
-        $dirs = explode('/', $path);
+        $dirs = sexplode('/', $path);
         $n = count($dirs);
         for ($i = 0; $i < $n-1; $i++) {
             $base .= hsc($dirs[$i]).'/';
