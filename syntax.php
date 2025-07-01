@@ -224,7 +224,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
         $renderer->internallink($ID, $title);
 
         $base = '';
-        $dirs = sexplode('/', $path);
+        $dirs = explode('/', $path);
         $n = count($dirs);
         for ($i = 0; $i < $n-1; $i++) {
             $base .= hsc($dirs[$i]).'/';
