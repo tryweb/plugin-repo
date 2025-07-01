@@ -94,7 +94,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     /**
      * Handle remote directories
      */
-    private function _directory($url, &$renderer, $path, $refresh) {
+    protected function _directory($url, &$renderer, $path, $refresh) {
         global $conf, $INPUT;
 
         $cache = getCacheName($url.$path, '.repo');
@@ -117,7 +117,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     /**
      * Extract links and list them as directory contents
      */
-    private function _index($url, $path, $base = '', $lvl = 0) {
+    protected function _index($url, $path, $base = '', $lvl = 0) {
 
         // download the index html file
         $http = new DokuHTTPClient();
@@ -147,7 +147,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     /**
      * Handle remote images
      */
-    private function _image($url, &$renderer) {
+    protected function _image($url, &$renderer) {
         $renderer->p_open();
         $renderer->externalmedia($url, NULL, NULL, NULL, NULL, 'recache');
         $renderer->p_close();
@@ -156,7 +156,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     /**
      * Handle remote source code files: display as code box with link to file at the end
      */
-    private function _codefile($url, &$renderer, $refresh) {
+    protected function _codefile($url, &$renderer, $refresh) {
 
         // output the code box with syntax highlighting
         $renderer->doc .= $this->_cached_geshi($url, $refresh);
@@ -174,7 +174,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
      * @author Christopher Smith <chris@jalakai.co.uk>
      * @author Esther Brunner <wikidesign@gmail.com>
      */
-    private function _cached_geshi($url, $refresh) {
+    protected function _cached_geshi($url, $refresh) {
         global $conf, $INPUT;
 
         $cache = getCacheName($url, '.code');
@@ -217,7 +217,7 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     /**
      * Show where we are with link back to main repository
      */
-    private function _location($path, $title, &$renderer) {
+    protected function _location($path, $title, &$renderer) {
         global $ID;
 
         $renderer->p_open();
