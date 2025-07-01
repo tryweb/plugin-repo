@@ -37,13 +37,9 @@ class syntax_plugin_repo extends DokuWiki_Syntax_Plugin {
     function handle($match, $state, $pos, Doku_Handler $handler) {
 
         $match = substr($match, 7, -2);
-        $parts = sexplode('|', $match, 2);
-        $base = $parts[0] ?? '';
-        $title = $parts[1] ?? '';
+        [$base, $title] = sexplode('|', $match, 2);
         
-        $parts = sexplode(' ', $base, 2);
-        $base = $parts[0] ?? '';
-        $refresh = $parts[1] ?? '';
+        [$base, $refresh] = sexplode(' ', $base, 2);
 
         if (preg_match('/(\d+)([dhm])/', $refresh, $match)) {
             $period = array('d' => 86400, 'h' => 3600, 'm' => 60);
